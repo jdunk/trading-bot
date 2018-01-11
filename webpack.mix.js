@@ -12,4 +12,7 @@ let mix = require('laravel-mix');
  */
 
 mix.js('resources/assets/js/app.js', 'public/js')
+   .js('node_modules/chart.js/dist/Chart.bundle.js', 'public/js')
+   .js('resources/assets/js/chartjs-chart-financial/Chart.Financial.js', 'public/js')
+   .js('resources/assets/js/chartjs-chart-financial/index.js', 'public/js')
    .sass('resources/assets/sass/app.scss', 'public/css');

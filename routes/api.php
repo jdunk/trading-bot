@@ -16,3 +16,8 @@ use Illuminate\Http\Request;
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('v1/exchangeInfo', 'ApiController@showExchangeInfo');
+
+Route::get('v1/exchangeInfo/refresh', 'ApiController@refreshExchangeInfo');
+Route::get('v1/candlesticks/update', 'ApiController@updateCandlesticks');

@@ -15,6 +15,7 @@ Route::get('/', function () {
     return view('home');
 });
 
-Route::get('api/v1/exchangeInfo', 'ApiController@showExchangeInfo');
-Route::get('api/v1/exchangeInfo/refresh', 'ApiController@refreshExchangeInfo');
+Route::get('/chartjs', function () {
+    return view('test-chartjs');
+});
 

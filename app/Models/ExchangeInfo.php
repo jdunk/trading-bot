@@ -2,7 +2,7 @@
 
 /**
  * Created by Reliese Model.
- * Date: Thu, 11 Jan 2018 07:17:59 +0800.
+ * Date: Fri, 12 Jan 2018 02:21:00 +0800.
  */
 
 namespace App\Models;
@@ -20,7 +20,7 @@ use Reliese\Database\Eloquent\Model as Eloquent;
  * @property float $tick_size
  * @property float $min_qty
  * @property float $step_size
- * @property float $min_notational
+ * @property float $min_notional
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  *
