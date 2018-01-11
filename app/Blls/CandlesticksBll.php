@@ -18,14 +18,14 @@ class CandlesticksBll
         $this->binanceApi = $binanceApi;
     }
 
-    public function fetchApiData($symbol, $interval, $limit=null, $startTime=null, $endTime=null)
+    public function fetchApiData($symbol, $interval, $startTime=null, $endTime=null)
     {
         $filename = 'candlesticks-' . $symbol . '-' . $interval . '.json';
 
-        if (! Storage::disk('local')->exists($filename))
+        if (true || ! Storage::disk('local')->exists($filename))
         {
             // Fetch from API
-            $data = $this->binanceApi->candlesticks($symbol, $interval);
+            $data = $this->binanceApi->candlesticks($symbol, $interval, $startTime, $endTime);
 
             Storage::put($filename, json_encode($data));
         }
@@ -40,7 +40,7 @@ class CandlesticksBll
         foreach ($data as $rowData)
         {
             $unixTimestamp = substr($rowData->openTime, 0, -3);
-            $dateTime = Carbon::createFromTimestamp($unixTimestamp)->toDateTimeString();
+            $dateTime = Carbon::createFromTimestampUTC($unixTimestamp)->toDateTimeString();
 
             $cstick = Candlesticks1m::firstOrNew([
                 'symbol' => $symbol,
