@@ -176,6 +176,8 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+        Reliese\Coders\CodersServiceProvider::class,
+        App\Providers\BinanceApiServiceProvider::class,
 
     ],
 

@@ -15,10 +15,6 @@ Route::get('/', function () {
     return view('home');
 });
 
-Route::get('/api/v1/exchangeInfo', function () {
-    $api = new Binance\API(config('binance.key.public'), config('binance.key.secret'));
+Route::get('api/v1/exchangeInfo', 'ApiController@showExchangeInfo');
+Route::get('api/v1/exchangeInfo/refresh', 'ApiController@refreshExchangeInfo');
 
-    return response()->json(
-        $api->exchangeInfo('ETHUSDT')
-    );
-});

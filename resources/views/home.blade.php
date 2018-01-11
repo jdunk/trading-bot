@@ -19,7 +19,19 @@
         <div id="app">
             <div class="content">
 
-                <table id="table_id" class="display table table-dark table-striped table-hover table-sm">
+                <table id="table_id" class="display table table-striped table-hover table-condensed">
+                <thead>
+                  <tr>
+                    <th>Symbol</th>
+                    <th>Base</th>
+                    <th>Quote</th>
+                    <th>MinPrice</th>
+                    <th>TickSize</th>
+                    <th>MinQty</th>
+                    <th>StepSize</th>
+                    <th>MinNotional</th>
+                  </tr>
+                </thead>
                 </table>
 
             </div>
@@ -35,7 +47,17 @@ $('#table_id').DataTable({
         data: function(d) {
             return d;
         }
-    }
+    },
+    columns: [
+        {data: 'symbol'},
+        {data: 'base_asset'},
+        {data: 'quote_asset'},
+        {data: 'min_price'},
+        {data: 'tick_size'},
+        {data: 'min_qty'},
+        {data: 'step_size'},
+        {data: 'min_notional'}
+    ],
 });
 
 </script>
