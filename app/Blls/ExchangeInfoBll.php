@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\Storage;
 class ExchangeInfoBll
 {
     protected $binanceApi;
-    private static $excludedExchanges = [
-        '123456',
-    ];
 
     private static $candlestickIntervals = [
         '1m',
@@ -41,6 +38,27 @@ class ExchangeInfoBll
     public function fetchExchangeInfo()
     {
         return ExchangeInfo::all();
+    }
+
+    public function getQuote($symbol = null)
+    {
+        $filename = 'priceTicker.json';
+        $priceData = $this->binanceApi->priceTicker($symbol);
+        Storage::put($filename, json_encode($priceData));
+
+        $filename = 'bookTicker.json';
+        $bookData = $this->binanceApi->bookTicker($symbol);
+        Storage::put($filename, json_encode($bookData));
+
+        return compact('priceData', 'bookData');
+    }
+
+    public function watchCharts($symbols)
+    {
+        $this->binanceApi->chart(['BNBUSDT', 'ETHUSDT'], '1m', function($api, $symbol, $chart) {
+            echo "{$symbol} chart update\n";
+            print_r($chart);
+        });
     }
 
     public function fetchRawExchangeInfo()
@@ -131,5 +149,10 @@ class ExchangeInfoBll
         }
 
         return array_reverse([json_decode(Storage::get($filename))]);
+    }
+    
+    public function allSymbols()
+    {
+        return array_pluck(ExchangeInfo::all(['symbol']), 'symbol');
     }
 }
