@@ -51,23 +51,13 @@ class DataUpdateCandlesticks extends Command
         $symbol = $this->argument('symbol');
         $interval = $this->argument('interval');
 
-        $numSaved = 0;
-
-        try
-        {
-            $numSaved = $this->candlesticksBll->fetchAndStoreCandlesticks(
-                $symbol,
-                $interval,
-                $this->option('from'),
-                $this->option('to'),
-                $this->option('chunk')
-            );
-        }
-        catch (Exception $e)
-        {
-            $this->error($e->getMessage());
-            throw $e;
-        }
+        $numSaved = $this->candlesticksBll->fetchAndStoreCandlesticks(
+            $symbol,
+            $interval,
+            $this->option('from'),
+            $this->option('to'),
+            $this->option('chunk')
+        );
 
         $this->info("$numSaved candlesticks fetched & saved");
     }

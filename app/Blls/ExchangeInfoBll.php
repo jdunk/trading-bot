@@ -2,6 +2,7 @@
 
 namespace App\Blls;
 
+use App\Blls\ExchangeBll;
 use App\Models\ExchangeInfo;
 use Binance\API as BinanceApi;
 use Illuminate\Support\Facades\Storage;
@@ -9,24 +10,6 @@ use Illuminate\Support\Facades\Storage;
 class ExchangeInfoBll
 {
     protected $binanceApi;
-
-    private static $candlestickIntervals = [
-        '1m',
-        '3m',
-        '5m',
-        '15m',
-        '30m',
-        '1h',
-        '2h',
-        '4h',
-        '6h',
-        '8h',
-        '12h',
-        '1d',
-        '3d',
-        '1w',
-        '1M',
-    ];
 
     public function __construct(
         BinanceApi $binanceApi
@@ -82,7 +65,7 @@ class ExchangeInfoBll
 
         foreach ($data->symbols as $s)
         {
-            if (in_array($s->symbol, self::$excludedExchanges)) {
+            if (in_array($s->symbol, ExchangeBll::EXCLUDED_SYMBOLS)) {
                 continue;
             }
 
