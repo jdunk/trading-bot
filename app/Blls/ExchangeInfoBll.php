@@ -48,15 +48,13 @@ class ExchangeInfoBll
     {
         $filename = 'exchangeInfo.json';
 
-        if (! Storage::disk('local')->exists($filename))
-        {
-            // Fetch from API
-            $data = $this->binanceApi->exchangeInfo();
+        // Fetch from API
+        $data = $this->binanceApi->exchangeInfo();
 
-            Storage::put($filename, json_encode($data));
-        }
+        $enc = json_encode($data);
+        #Storage::put($filename, $enc);
 
-        return json_decode(Storage::get($filename));
+        return json_decode($enc);
     }
 
     public function storeExchangeInfo($data)

@@ -52,6 +52,17 @@ class CreateCandlesticks1mTable extends Migration
             $table->float('wema5', 15, 8)->unsigned()->nullable();
             $table->float('wema9', 15, 8)->unsigned()->nullable();
 
+            // Moving Average Percent Change
+            $table->float('mapc3', 7, 4)->nullable();
+            $table->float('mapc4', 7, 4)->nullable();
+            $table->float('mapc5', 7, 4)->nullable();
+            $table->float('mapc6', 7, 4)->nullable();
+
+            $table->float('emapc3', 7, 4)->nullable();
+            $table->float('emapc4', 7, 4)->nullable();
+            $table->float('emapc5', 7, 4)->nullable();
+            $table->float('emapc6', 7, 4)->nullable();
+
             $table->timestamps();
 
             $table->unique(['symbol', 'datetime_']);

@@ -5,6 +5,7 @@ namespace App\Blls;
 use App\Blls\ExchangeInfoBll;
 use App\Models\PriceTicker;
 use Binance\API as BinanceApi;
+use Cache;
 use Carbon\Carbon;
 use DB;
 use Illuminate\Support\Facades\Storage;
@@ -36,6 +37,9 @@ class ExchangeBll
         '1M',
     ];
 
+    const MAX_LOOKBACK_PRICE_TICKS = 20;
+    const PRICE_TICKS_INTERVAL_SECONDS = 10;
+
     public function __construct(
         BinanceApi $binanceApi,
         ExchangeInfoBll $exchangeInfoBll
@@ -66,6 +70,8 @@ class ExchangeBll
                 ->get();
 
             $this->addPriceTickerCalculatedFields($priceRows);
+
+            dd(array_except((array) $row, ['symbol', 'id', 'datetime_', 'price']));
         }
     }
 
@@ -77,7 +83,15 @@ class ExchangeBll
         {
             if (! $i) continue;
 
-            $diff1 = $row->price;
+            foreach (range(1,4) as $n)
+            {
+                if ($n > $i) continue;
+
+                $compPrice = $data[$i - $n]->price;
+                $diff = $row->price - $compPrice;
+                $row->{"perc_change_vs_$n"} = $diff / $compPrice;
+            }
+
         }
     }
 
@@ -98,34 +112,89 @@ class ExchangeBll
         return $bookData;
     }
 
-    public function storePriceTicker($data)
+    public function getRecentPrices()
     {
-        // Set to nearest past 10-second interval
-        $datetime_ = Carbon::createFromTimestampUTC(floor(now()->timestamp/10)*10)->toDateTimeString();
+        return cache('recent-prices', []);
+    }
+
+    public function updatePrices()
+    {
+        $recentPrices = $this->getRecentPrices();
+        $currentPrices = $this->getPriceTicker();
+
+        $bulkInsertData = $this->doMetaCalcsAndMergeIntoRecentPrices($currentPrices, $recentPrices);
+
+        // Update cache
+        Cache::forever('recent-prices', $recentPrices);
+
+        // Update db
+        $this->storePriceTicker($bulkInsertData);
+    }
+    
+    public function doMetaCalcsAndMergeIntoRecentPrices(& $currentPrices, & $recentPrices)
+    {
+        // Set to nearest past PRICE_TICKS_INTERVAL_SECONDS time
+        $currentTime = Carbon::createFromTimestampUTC(floor(now()->timestamp / self::PRICE_TICKS_INTERVAL_SECONDS) * self::PRICE_TICKS_INTERVAL_SECONDS);
+
+        $currentTimeStr = $currentTime->toDateTimeString();
+        $currentTimestamp = $currentTime->timestamp;
 
         $bulkInsert = [];
 
-        foreach ($data as $tick)
+        foreach ($currentPrices as $tick)
         {
             if (in_array($tick->symbol, self::EXCLUDED_SYMBOLS)) { continue; }
 
-            $bulkInsert[] = [
-                'datetime_' => $datetime_,
+            if (empty($recentPrices[$tick->symbol]))
+            {
+                // Initialize structure
+                $recentPrices[$tick->symbol] = (object) [
+                    'prices' => [],
+                    'meta' => [],
+                ];
+            }
+
+            $rPrices = & $recentPrices[$tick->symbol]->prices;
+            $rMeta = & $recentPrices[$tick->symbol]->meta;
+
+            $numOtherPrices = count($rPrices);
+
+            $currMeta = [];
+
+            foreach (range(1,4) as $n)
+            {
+                if ($n > $numOtherPrices) continue;
+
+                $compTimestamp = $this->getCompTimestamp($currentTimestamp, $n);
+
+                if (empty($rPrices[$compTimestamp])) continue;
+
+                $compPrice = $rPrices[$compTimestamp];
+                $diff = $tick->price - $compPrice;
+
+                $currMeta["perc_change_vs_$n"] = $diff / $compPrice;
+            }
+
+            // Merge in current price
+            $rPrices[$currentTimestamp] = $tick->price;
+
+            // Merge in current meta
+            $rMeta[$currentTimestamp] = $currMeta;
+
+            $bulkInsert[] = array_merge([
+                'datetime_' => $currentTimeStr,
                 'symbol' => $tick->symbol,
                 'price' => $tick->price,
-            ];
+            ], $currMeta);
         }
 
-        DB::table('price_ticker')->insert($bulkInsert);
-
-        return count($bulkInsert);
+// Unset all $currentPrices...<beyond-max-threshold>... elems
+        return $bulkInsert;
     }
 
-    public function getAndStorePriceTicker()
+    public function storePriceTicker($bulkInsertData)
     {
-        $data = $this->getPriceTicker();
-
-        return $this->storePriceTicker($data);
+        DB::table('price_ticker')->insert($bulkInsertData);
     }
 
     public function storeBookTicker($data)
@@ -155,5 +224,10 @@ class ExchangeBll
         $data = $this->getBookTicker();
 
         return $this->storeBookTicker($data);
+    }
+
+    private function getCompTimestamp($currTimestamp, $n)
+    {
+        return $currTimestamp - ($n * self::PRICE_TICKS_INTERVAL_SECONDS);
     }
 }

@@ -42,7 +42,6 @@ class DataUpdatePriceTicker extends Command
      */
     public function handle()
     {
-        $numStored = $this->exchangeBll->getAndStorePriceTicker();
-        $this->info("$numStored records inserted.");
+        $this->exchangeBll->updatePrices();
     }
 }
