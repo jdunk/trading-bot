@@ -192,6 +192,37 @@ class ExchangeBll
         return $bulkInsert;
     }
 
+    public function marketSell($symbol, $qty)
+    {
+        $ret = $this->binanceApi->marketSell($symbol, $qty);
+        logger(['marketSell return' => $ret]);
+    }
+
+    public function marketBuy($symbol, $qty)
+    {
+        $ret = $this->binanceApi->marketBuy($symbol, $qty);
+        logger(['marketBuy return' => $ret]);
+
+        return $ret;
+    }
+
+    public function stopLoss($symbol, $qty, $price, $stopPrice)
+    {
+        $ret = $this->binanceApi->order('SELL', $symbol, $qty, $price, 'STOP_LOSS_LIMIT', compact('stopPrice'));
+        logger(['stopLoss return' => $ret]);
+
+        return $ret;
+    }
+
+    public function getBalances()
+    {
+        $balances = array_filter($this->binanceApi->balances(), function($value) {
+            return $value['available'] !== '0.00000000' || $value['onOrder'] !== '0.00000000';
+        });
+
+        return $balances;
+    }
+
     public function storePriceTicker($bulkInsertData)
     {
         DB::table('price_ticker')->insert($bulkInsertData);
