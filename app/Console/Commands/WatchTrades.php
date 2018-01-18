@@ -14,7 +14,9 @@ class WatchTrades extends Command
      */
     protected $signature = 'watch-trades
                             {symbol : e.g. ETHUSDT}
-                            {alert-price? : e.g. 14.52}';
+                            {alert-price? : e.g. 14.52}
+                            {--buy= : Quantity to buy (market) when alert-price is reached}
+                            {--sell= : Quantity to sell (market) when alert-price is reached}';
 
     /**
      * The console command description.
@@ -47,6 +49,21 @@ class WatchTrades extends Command
         $symbol = $this->argument('symbol');
         $alertPrice = $this->argument('alert-price');
 
-        $this->exchangeInfoBll->watchTrades($symbol, $alertPrice);
+        $buyQty = $this->option('buy');
+        $sellQty = $this->option('sell');
+
+        if ($buyQty && $sellQty)
+        {
+            $this->error("You can't both buy and sell. Choose one or the other.");
+            return false;
+        }
+
+        if (($buyQty || $sellQty) && ! $alertPrice)
+        {
+            $this->error("alert-price is required when --buy or --sell are specified");
+            return false;
+        }
+
+        $this->exchangeInfoBll->watchTrades($symbol, $alertPrice, $buyQty, $sellQty);
     }
 }

@@ -11,6 +11,7 @@ use Symfony\Component\Process\Process;
 class ExchangeInfoBll
 {
     protected $binanceApi;
+    protected $exchangeBll;
 
     public function __construct(
         BinanceApi $binanceApi
@@ -37,11 +38,11 @@ class ExchangeInfoBll
         return compact('priceData', 'bookData');
     }
 
-    public function watchTrades($symbols, $alertPrice = null)
+    public function watchTrades($symbols, $alertPrice = null, $buyQty = null, $sellQty = null)
     {
         $onTheWayUpOrDown = null;
 
-        $this->binanceApi->trades((array) $symbols, function($api, $symbol, $trade) use ($alertPrice, & $onTheWayUpOrDown) {
+        $this->binanceApi->trades((array) $symbols, function($api, $symbol, $trade) use ($alertPrice, & $onTheWayUpOrDown, $buyQty, $sellQty) {
             echo $trade['price'];
 
             if ($alertPrice)
@@ -66,7 +67,8 @@ class ExchangeInfoBll
 
                 if ($priceMet)
                 {
-                    $this->priceMet($symbol, $alertPrice, $onTheWayUpOrDown);
+                    $ret = $this->priceMet($symbol, $alertPrice, $buyQty, $sellQty);
+                    dump($ret);
                     exit;
                 }
 
@@ -77,9 +79,32 @@ class ExchangeInfoBll
         });
     }
 
-    protected function priceMet($symbol, $alertPrice, $upOrDown)
+    protected function priceMet($symbol, $alertPrice, $buyQty, $sellQty)
     {
-        (new Process('notify-send "Price met" "' . "$symbol has reached $alertPrice" . '"'))->run();
+        // (new Process('notify-send "Price met" "' . "$symbol has reached $alertPrice" . '"'))->run();
+        logger("$symbol has reached $alertPrice" . '"');
+
+        if ($buyQty)
+        {
+            return $this->exchangeBll()->marketBuy($symbol, $buyQty);
+        }
+
+        if ($sellQty)
+        {
+            return $this->exchangeBll()->marketSell($symbol, $sellQty);
+        }
+    }
+
+    public function exchangeBll()
+    {
+        if ($this->exchangeBll)
+        {
+            return $this->exchangeBll;
+        }
+
+        $this->exchangeBll = resolve(ExchangeBll::class);
+
+        return $this->exchangeBll;
     }
 
     public function watchCharts($symbols)
