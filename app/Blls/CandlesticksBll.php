@@ -3,7 +3,9 @@
 namespace App\Blls;
 
 use App\Blls\ExchangeInfoBll;
+use App\Jobs\UpdateCandlesticksJob;
 use App\Models\Candlesticks1m;
+use App\Models\Candlesticks5m;
 use Binance\API as BinanceApi;
 use Carbon\Carbon;
 use Exception;
@@ -69,7 +71,7 @@ class CandlesticksBll
 
             $datetime_ = Carbon::createFromTimestampUTC($unixTimestamp)->toDateTimeString();
 
-            $className = "Candlesticks$interval";
+            $className = "App\Models\Candlesticks$interval";
 
             $cstick = $className::firstOrNew([
                 'symbol' => $symbol,
@@ -89,7 +91,7 @@ class CandlesticksBll
         return $numSaved;
     }
 
-    public function fetchAndStoreCandlesticks($symbols, $interval, $startTime = null, $endTime = null, $chunk = 1)
+    public function fetchAndStoreCandlesticks1($symbols, $interval, $startTime = null, $endTime = null, $skipQueue = false, $chunk = 1)
     {
         $symbols = (array) $symbols;
 
@@ -112,6 +114,19 @@ class CandlesticksBll
         $startTime = $this->parseDate($startTime, 'from');
         $endTime = $this->parseDate($endTime, 'to');
 
+        return $this->fetchAndStoreCandlesticks2($symbols, $interval, $startTime, $endTime, $skipQueue, $chunk);
+    }
+
+    /**
+     * Prerequisite: fetchAndStoreCandlesticks1
+     */
+    public function fetchAndStoreCandlesticks2($symbols, $interval, $startTime, $endTime, $skipQueue, $chunk)
+    {
+        if (! $skipQueue)
+        {
+            return UpdateCandlesticksJob::dispatch($symbols, $interval, $startTime, $endTime, $chunk);
+        }
+
         $totalNumStored = 0;
 
         foreach ($symbols as $symbol)
@@ -129,6 +144,11 @@ class CandlesticksBll
 
     public function parseDate($value, $optionName)
     {
+        if ($value === null)
+        {
+            return $value;
+        }
+
         $valueLen = strlen($value);
 
         // For some reason, Carbon can't ::parse() unix timestamps, so do it manually
