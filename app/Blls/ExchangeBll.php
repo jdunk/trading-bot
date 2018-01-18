@@ -196,6 +196,8 @@ class ExchangeBll
     {
         $ret = $this->binanceApi->marketSell($symbol, $qty);
         logger(['marketSell return' => $ret]);
+
+        return $ret;
     }
 
     public function marketBuy($symbol, $qty)

@@ -69,7 +69,9 @@ class CandlesticksBll
 
             $datetime_ = Carbon::createFromTimestampUTC($unixTimestamp)->toDateTimeString();
 
-            $cstick = Candlesticks1m::firstOrNew([
+            $className = "Candlesticks$interval";
+
+            $cstick = $className::firstOrNew([
                 'symbol' => $symbol,
                 'datetime_' => $datetime_,
             ]);

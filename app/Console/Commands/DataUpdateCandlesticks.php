@@ -14,11 +14,12 @@ class DataUpdateCandlesticks extends Command
      * @var string
      */
     protected $signature = 'data:update-candlesticks
-                            {symbol : e.g. "ETHUSDT" (Or "ALL" to fetch candlesticks for *all* symbols)}
+                            {symbol : e.g. "ETHUSDT" (Or "ETHUSDT,BTCUSDT" or "ALL")}
                             {interval=1m : e.g. 1m|30m|1h}
                             {--from= : unix timestamp or whatever}
                             {--to= : unix timestamp or whatever}
-                            {--chunk= : which chunk # to process}';
+                            {--chunk= : which chunk # to process}
+                            {--now : Process now instead of enqueueing}';
 
     /**
      * The console command description.
@@ -50,6 +51,14 @@ class DataUpdateCandlesticks extends Command
     {
         $symbol = $this->argument('symbol');
         $interval = $this->argument('interval');
+        $doNow = $this->option('now');
+
+        $symbol = explode(',', $symbol);
+
+        if (! $doNow)
+        {
+            $this->info("UpdateCandlesticks job enqueued");
+        }
 
         $numSaved = $this->candlesticksBll->fetchAndStoreCandlesticks(
             $symbol,

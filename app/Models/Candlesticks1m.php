@@ -2,7 +2,7 @@
 
 /**
  * Created by Reliese Model.
- * Date: Sat, 13 Jan 2018 12:35:08 +0800.
+ * Date: Thu, 18 Jan 2018 05:03:33 +0800.
  */
 
 namespace App\Models;
@@ -39,6 +39,14 @@ use Reliese\Database\Eloquent\Model as Eloquent;
  * @property float $wema4
  * @property float $wema5
  * @property float $wema9
+ * @property float $mapc3
+ * @property float $mapc4
+ * @property float $mapc5
+ * @property float $mapc6
+ * @property float $emapc3
+ * @property float $emapc4
+ * @property float $emapc5
+ * @property float $emapc6
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  *
@@ -72,7 +80,15 @@ class Candlesticks1m extends Eloquent
 		'wma20' => 'float',
 		'wema4' => 'float',
 		'wema5' => 'float',
-		'wema9' => 'float'
+		'wema9' => 'float',
+		'mapc3' => 'float',
+		'mapc4' => 'float',
+		'mapc5' => 'float',
+		'mapc6' => 'float',
+		'emapc3' => 'float',
+		'emapc4' => 'float',
+		'emapc5' => 'float',
+		'emapc6' => 'float'
 	];
 
 	protected $dates = [
@@ -105,6 +121,14 @@ class Candlesticks1m extends Eloquent
 		'wma20',
 		'wema4',
 		'wema5',
-		'wema9'
+		'wema9',
+		'mapc3',
+		'mapc4',
+		'mapc5',
+		'mapc6',
+		'emapc3',
+		'emapc4',
+		'emapc5',
+		'emapc6'
 	];
 }
