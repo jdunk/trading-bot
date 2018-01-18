@@ -6,6 +6,7 @@ use App\Blls\ExchangeBll;
 use App\Models\ExchangeInfo;
 use Binance\API as BinanceApi;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Process;
 
 class ExchangeInfoBll
 {
@@ -36,10 +37,54 @@ class ExchangeInfoBll
         return compact('priceData', 'bookData');
     }
 
+    public function watchTrades($symbols, $alertPrice = null)
+    {
+        $onTheWayUpOrDown = null;
+
+        $this->binanceApi->trades((array) $symbols, function($api, $symbol, $trade) use ($alertPrice, & $onTheWayUpOrDown) {
+            echo $trade['price'];
+
+            if ($alertPrice)
+            {
+                if (! $onTheWayUpOrDown)
+                {
+                    $onTheWayUpOrDown = ($trade['price'] > $alertPrice ? 'down' : 'up');
+                    echo "\n";
+                    return;
+                }
+
+                $priceMet = false;
+
+                if ($onTheWayUpOrDown == 'down')
+                {
+                    $priceMet = $trade['price'] <= $alertPrice;
+                }
+                else
+                {
+                    $priceMet = $trade['price'] >= $alertPrice;
+                }
+
+                if ($priceMet)
+                {
+                    $this->priceMet($symbol, $alertPrice, $onTheWayUpOrDown);
+                    exit;
+                }
+
+                echo " (watching for " . ($onTheWayUpOrDown == 'down' ? '<=' : '>=') . " $alertPrice)";
+            }
+
+            echo "\n";
+        });
+    }
+
+    protected function priceMet($symbol, $alertPrice, $upOrDown)
+    {
+        (new Process('notify-send "Price met" "' . "$symbol has reached $alertPrice" . '"'))->run();
+    }
+
     public function watchCharts($symbols)
     {
-        $this->binanceApi->chart(['BNBUSDT', 'ETHUSDT'], '1m', function($api, $symbol, $chart) {
-            echo "{$symbol} chart update\n";
+        $this->binanceApi->chart((array) $symbols, '1m', function($api, $symbol, $chart) {
             print_r($chart);
         });
     }
