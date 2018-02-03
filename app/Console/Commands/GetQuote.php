@@ -43,9 +43,29 @@ class GetQuote extends Command
      */
     public function handle()
     {
-        $symbol = $this->argument('symbol');
-        $ret = $this->exchangeInfoBll->getQuote($symbol);
-        dump($ret);
+        $symbol = explode(',', $this->argument('symbol'));
+
+        if (count($symbol) > 1)
+        {
+            $ret = $this->exchangeInfoBll->getQuote();
+            $prices = $ret['priceData'];
+            $prices = array_filter($prices, function($quote) use ($symbol) {
+                return in_array($quote->symbol, $symbol);
+            });
+        }
+        else
+        {
+            $ret = $this->exchangeInfoBll->getQuote($symbol[0]);
+            $prices = [ $ret['priceData'] ];
+        }
+
+        $tableData = array_map(function($item) {
+            return [ $item->symbol, $item->price ];
+        }, $prices);
+
+        $this->table(['Symbol', 'Price'],
+            $tableData
+        );
         $this->info('Done.');
     }
 }
