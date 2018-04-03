@@ -24,13 +24,12 @@ class UpdateCandlesticksJob implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($symbols, $interval, $startTime, $endTime, $chunk)
+    public function __construct($symbols, $interval, $startTime, $endTime)
     {
         $this->symbols = $symbols;
         $this->interval = $interval;
         $this->startTime = $startTime;
         $this->endTime = $endTime;
-        $this->chunk = $chunk;
     }
 
     /**
@@ -40,13 +39,11 @@ class UpdateCandlesticksJob implements ShouldQueue
      */
     public function handle(CandlesticksBll $candlesticksBll)
     {
-        $numSaved = $candlesticksBll->fetchAndStoreCandlesticks2(
+        $numSaved = $candlesticksBll->fetchAndStoreCandlesticksFinish(
             $this->symbols,
             $this->interval,
             $this->startTime,
-            $this->endTime,
-            true,
-            $this->chunk
+            $this->endTime
         );
 
         logger(self::class . " finished. $numSaved candlesticks_" . $this->interval . " saved for " . $this->symbols->implode(','));

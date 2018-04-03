@@ -15,6 +15,7 @@ class CandlesticksBll
 {
     protected $binanceApi;
     protected $exchangeInfoBll;
+    const SYMBOL_CHUNK_SIZE = 65;
 
     public function __construct(
         BinanceApi $binanceApi
@@ -91,7 +92,20 @@ class CandlesticksBll
         return $numSaved;
     }
 
-    public function fetchAndStoreCandlesticks1($symbols, $interval, $startTime = null, $endTime = null, $skipQueue = false, $chunk = 1)
+    /**
+     * This public method processes and massages the input params before passing to the processing method, fetchAndStoreCandlesticksFinish
+     *
+     * @param string|string[] $symbols String (one symbol) or array of symbol strings. 'ALL' fetches all symbol names from storage.
+     * @param $interval e.g. '1m', '5m', etc
+     * @param null $startTime
+     * @param null $endTime
+     * @param bool $skipQueue
+     * @param int $chunk
+     * @return \Illuminate\Foundation\Bus\PendingDispatch|int
+     * @throws Exception
+     * @throws \Throwable
+     */
+    public function fetchAndStoreCandlesticksStart($symbols, $interval, $startTime = null, $endTime = null, $skipQueue = false)
     {
         $symbols = (array) $symbols;
 
@@ -105,28 +119,31 @@ class CandlesticksBll
             $chunk = 1;
         }
 
-        $symbols = collect($symbols)->chunk(65);
-
-        throw_if($chunk < 1 || $chunk > count($symbols), 'Invalid chunk number');
-
-        $symbols = $symbols[$chunk-1];
-
         $startTime = $this->parseDate($startTime, 'from');
         $endTime = $this->parseDate($endTime, 'to');
 
-        return $this->fetchAndStoreCandlesticks2($symbols, $interval, $startTime, $endTime, $skipQueue, $chunk);
-    }
-
-    /**
-     * Prerequisite: fetchAndStoreCandlesticks1
-     */
-    public function fetchAndStoreCandlesticks2($symbols, $interval, $startTime, $endTime, $skipQueue, $chunk)
-    {
-        if (! $skipQueue)
-        {
-            return UpdateCandlesticksJob::dispatch($symbols, $interval, $startTime, $endTime, $chunk);
+        if ($skipQueue) {
+            return $this->fetchAndStoreCandlesticksFinish($symbols, $interval, $startTime, $endTime);
         }
 
+        return $this->fetchAndStoreCandlesticksEnqueue($symbols, $interval, $startTime, $endTime, $skipQueue, $chunk);
+    }
+
+    public function fetchAndStoreCandlesticksEnqueue($symbols, $interval, $startTime, $endTime)
+    {
+        // Chunk up $symbols (in case there are many) for job queue so that they can be downloaded in parallel
+        $symbolChunks = collect($symbols)->chunk(self::SYMBOL_CHUNK_SIZE);
+
+        foreach ($symbolChunks as $symbolChunk)
+        {
+            UpdateCandlesticksJob::dispatch($symbolChunk, $interval, $startTime, $endTime, $chunk);
+        }
+
+        return true;
+    }
+
+    public function fetchAndStoreCandlesticksFinish($symbols, $interval, $startTime, $endTime)
+    {
         $totalNumStored = 0;
 
         foreach ($symbols as $symbol)
@@ -142,6 +159,15 @@ class CandlesticksBll
         return $totalNumStored;
     }
 
+    /**
+     * Accepts any recognizable date string/int within the past year, and returns a unix timestamp in microseconds.
+     *
+     * @param string|int $value A string or int in any date format
+     * @param string $optionName e.g. 'start' or 'end', used for exception message if $value is invalid
+     *
+     * @return string|null Unix timestamp (string) in microseconds (or null if $value is null)
+     * @throws Exception if $value is not a valid date within the past year
+     */
     public function parseDate($value, $optionName)
     {
         if ($value === null)
@@ -155,6 +181,7 @@ class CandlesticksBll
         // Also, account/allow for the timestamp being in microseconds (i.e. x1000)
         // as the BN API gives it (and requires it).
 
+        // if value is nothing but 10 or 13 number chars...
         if (preg_match('@^\d+$@', $value) && in_array($valueLen, [10, 13])) {
             if ($valueLen == 13) {
                 $value = substr($value, 0, -3);
@@ -175,6 +202,13 @@ class CandlesticksBll
         return $value . '000';
     }
 
+    /**
+     * Throws an exception if $value is not a date within the past year
+     *
+     * @param int|string $value Unix timestamp (in seconds)
+     * @param string $optionName e.g. 'start' or 'end', used for exception message if $value is invalid
+     * @throws \Throwable
+     */
     public function mustBeWithinThePastYear($value, $optionName)
     {
         throw_if(

@@ -18,8 +18,7 @@ class DataUpdateCandlesticks extends Command
                             {interval=1m : e.g. 1m|30m|1h}
                             {--from= : unix timestamp or whatever}
                             {--to= : unix timestamp or whatever}
-                            {--now : Process now instead of enqueueing}
-                            {--chunk= : which chunk # to process}';
+                            {--now : Process now instead of enqueueing}';
 
     /**
      * The console command description.
@@ -49,19 +48,12 @@ class DataUpdateCandlesticks extends Command
      */
     public function handle()
     {
-        $symbol = $this->argument('symbol');
-        $interval = $this->argument('interval');
-        $doNow = $this->option('now');
-
-        $symbol = explode(',', $symbol);
-
-        $ret = $this->candlesticksBll->fetchAndStoreCandlesticks1(
-            $symbol,
-            $interval,
+        $ret = $this->candlesticksBll->fetchAndStoreCandlesticks(
+            explode(',', $this->argument('symbol')),
+            $this->argument('interval'),
             $this->option('from'),
             $this->option('to'),
-            $this->option('now'),
-            $this->option('chunk')
+            $this->option('now')
         );
 
         dump(['ret' => $ret]);
