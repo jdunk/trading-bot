@@ -129,12 +129,10 @@ class CandlesticksBll
 
     public function fetchAndStoreCandlesticksEnqueue($symbols, $interval, $startTime, $endTime)
     {
-        // Chunk up $symbols (in case there are many) for job queue so that they can be downloaded in parallel
-        $symbolChunks = collect($symbols)->chunk(self::SYMBOL_CHUNK_SIZE);
-
-        foreach ($symbolChunks as $symbolChunk)
+        // For queue jobs, put each symbol in its own job for parallelization
+        foreach ($symbols as $symbol)
         {
-            UpdateCandlesticksJob::dispatch($symbolChunk, $interval, $startTime, $endTime);
+            UpdateCandlesticksJob::dispatch([$symbol], $interval, $startTime, $endTime);
         }
 
         return true;

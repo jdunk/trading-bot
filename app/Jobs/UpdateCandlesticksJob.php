@@ -46,6 +46,6 @@ class UpdateCandlesticksJob implements ShouldQueue
             $this->endTime
         );
 
-        logger(self::class . " finished. $numSaved candlesticks_" . $this->interval . " saved for " . $this->symbols->implode(','));
+        logger(self::class . " finished. $numSaved candlesticks_" . $this->interval . " saved for " . implode(',', $this->symbols));
     }
 }
