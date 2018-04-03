@@ -42,18 +42,21 @@ class CandlesticksBll
             $endTime = $this->parseDate($endTime, 'to');
         }
 
-        $filename = implode('-', ['candlesticks', $symbol, $interval, 's-' . $startTime, 'e-' . $endTime]) . '.json';
-
         // Fetch from API
         logger("Fetching $symbol $interval candlesticks $startTime..$endTime");
         $data = $this->binanceApi->candlesticks($symbol, $interval, $startTime, $endTime);
-        #logger(count(array_keys($data)) . " candlesticks fetched.");
+        $keys = array_keys($data);
+        logger(count($keys) . " candlesticks fetched.");
 
         $enc = json_encode($data);
+        $data = json_decode($enc);
+
+        $filename = implode('-', ['candlesticks', $symbol, $interval, 's-' . $startTime, 'e-' . end($keys)]) . '.json';
+
         #Storage::put($filename, $enc);
         #logger("Saved to $filename");
 
-        return json_decode($enc);
+        return $data;
     }
 
     public function storeCandlesticks($symbol, $interval, $data)
@@ -89,11 +92,11 @@ class CandlesticksBll
             $numSaved++;
         }
 
-        return $numSaved;
+        return [$numSaved, $rowData->openTime];
     }
 
     /**
-     * This public method processes and massages the input params before passing to the processing method, fetchAndStoreCandlesticksFinish
+     * This method processes and massages the input params before passing to the Enqueue method or to the Finish (fetching/storing) method
      *
      * @param string|string[] $symbols String (one symbol) or array of symbol strings. 'ALL' fetches all symbol names from storage.
      * @param $interval e.g. '1m', '5m', etc
@@ -137,19 +140,39 @@ class CandlesticksBll
         return true;
     }
 
+    /**
+     * Prerequisite: fetchAndStoreCandlesticksStart
+     *
+     * Fetches the candlestick data from the API and stores it in the db
+     *
+     * @param $symbols
+     * @param $interval
+     * @param $startTime
+     * @param $endTime
+     * @return int Total candlesticks fetched and stored
+     */
     public function fetchAndStoreCandlesticksFinish($symbols, $interval, $startTime, $endTime)
     {
         $totalNumStored = 0;
 
         foreach ($symbols as $symbol)
         {
-            $data = $this->fetchApiData($symbol, $interval, $startTime, $endTime, true);
-            $numStored = $this->storeCandlesticks($symbol, $interval, $data);
-            #logger("Stored $numStored candlesticks_$interval: $symbol");
-            $totalNumStored += $numStored;
+            $currStartTime = $startTime;
+
+            do
+            {
+                $data = $this->fetchApiData($symbol, $interval, $currStartTime, $endTime, true);
+                list($numStored, $lastRowTime) = $this->storeCandlesticks($symbol, $interval, $data);
+                #logger("Stored $numStored candlesticks_$interval: $symbol");
+                $totalNumStored += $numStored;
+
+                $lastStartTime = $currStartTime;
+                $currStartTime = $lastRowTime;
+            }
+            while ($lastRowTime > $lastStartTime && (!$endTime || $lastRowTime < $endTime));
         }
 
-        logger("Stored $totalNumStored candlesticks_$interval");
+        #logger("Stored $totalNumStored candlesticks_$interval");
 
         return $totalNumStored;
     }
