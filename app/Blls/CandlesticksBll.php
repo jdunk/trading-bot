@@ -100,7 +100,7 @@ class CandlesticksBll
      * @param null $startTime
      * @param null $endTime
      * @param bool $skipQueue
-     * @param int $chunk
+     *
      * @return \Illuminate\Foundation\Bus\PendingDispatch|int
      * @throws Exception
      * @throws \Throwable
@@ -114,11 +114,6 @@ class CandlesticksBll
             $symbols = $this->exchangeInfoBll()->allSymbols();
         }
 
-        if (blank($chunk))
-        {
-            $chunk = 1;
-        }
-
         $startTime = $this->parseDate($startTime, 'from');
         $endTime = $this->parseDate($endTime, 'to');
 
@@ -126,7 +121,7 @@ class CandlesticksBll
             return $this->fetchAndStoreCandlesticksFinish($symbols, $interval, $startTime, $endTime);
         }
 
-        return $this->fetchAndStoreCandlesticksEnqueue($symbols, $interval, $startTime, $endTime, $skipQueue, $chunk);
+        return $this->fetchAndStoreCandlesticksEnqueue($symbols, $interval, $startTime, $endTime, $skipQueue);
     }
 
     public function fetchAndStoreCandlesticksEnqueue($symbols, $interval, $startTime, $endTime)
@@ -136,7 +131,7 @@ class CandlesticksBll
 
         foreach ($symbolChunks as $symbolChunk)
         {
-            UpdateCandlesticksJob::dispatch($symbolChunk, $interval, $startTime, $endTime, $chunk);
+            UpdateCandlesticksJob::dispatch($symbolChunk, $interval, $startTime, $endTime);
         }
 
         return true;

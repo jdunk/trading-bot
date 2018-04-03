@@ -48,7 +48,7 @@ class DataUpdateCandlesticks extends Command
      */
     public function handle()
     {
-        $ret = $this->candlesticksBll->fetchAndStoreCandlesticks(
+        $ret = $this->candlesticksBll->fetchAndStoreCandlesticksStart(
             explode(',', $this->argument('symbol')),
             $this->argument('interval'),
             $this->option('from'),
